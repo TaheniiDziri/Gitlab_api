@@ -1,22 +1,23 @@
-name: Trigger GitLab Pipeline
+name: Trigger GitLab Pipeline  # Nom du workflow, vous pouvez le personnaliser si nécessaire.
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main  # Remplacez "main" par le nom de la branche sur laquelle vous voulez déclencher le workflow dans GitHub (par exemple : 'develop', 'feature-branch', etc.)
 
 jobs:
-  trigger-pipeline:
-    runs-on: ubuntu-latest
+  trigger_gitlab_pipeline:
+    runs-on: ubuntu-latest  # Vous pouvez laisser cette ligne inchangée, ou la modifier si vous avez des besoins spécifiques pour l'environnement d'exécution (par exemple, 'macos-latest' ou 'windows-latest').
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Set up GitHub repository and GitLab API token
+        run: |
+          echo "GITLAB_TOKEN=${{ secrets.GITLAB_TOKEN }}" >> $GITHUB_ENV  # Assurez-vous que le secret 'GITLAB_TOKEN' est configuré dans GitHub Secrets. Remplacez-le par un autre secret si nécessaire.
+          echo "GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }}" >> $GITHUB_ENV  # Assurez-vous que le secret 'GITLAB_PROJECT_ID' est configuré dans GitHub Secrets. Utilisez un autre nom de secret si vous le souhaitez.
 
       - name: Trigger GitLab Pipeline
         run: |
-          curl -X POST             "http://localhost:3001/gitlab/trigger/TaheniiDziri/Gitlab_api"
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-    
+          curl --request POST \
+          --form "ref=main"  # Remplacez 'main' par la branche ou le tag que vous souhaitez cibler dans GitLab pour déclencher la pipeline (par exemple : 'develop', 'feature-branch', etc.)
+          --form "token=${{ secrets.GITLAB_TOKEN }}" \  # Assurez-vous que la clé d'API GitLab (token) est bien configurée dans GitHub Secrets.
+          "https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_PROJECT_ID }}/trigger/pipeline"  # Remplacez le projet GitLab avec l'ID approprié. Assurez-vous que l'ID de projet GitLab est bien configuré dans les secrets GitHub.
