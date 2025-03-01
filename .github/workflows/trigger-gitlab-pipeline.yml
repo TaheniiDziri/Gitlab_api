@@ -52,7 +52,7 @@ jobs:
           done
 
           if [ "$STATUS" == "success" ]; then
-            echo "Le pipeline GitLab a réussi ✅"
+            echo "Le pipeline GitLab a réussi"
           else
-            echo "Le pipeline GitLab a échoué ❌"
+            echo "Le pipeline GitLab a échoué "
             exit 1
