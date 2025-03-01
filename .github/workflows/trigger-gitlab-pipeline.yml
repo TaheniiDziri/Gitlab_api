@@ -1,3 +1,11 @@
+name: Trigger GitLab Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
 jobs:
   trigger_gitlab_pipeline:
     runs-on: ubuntu-latest
@@ -48,4 +56,3 @@ jobs:
           else
             echo "Le pipeline GitLab a échoué ❌"
             exit 1
-          fi
