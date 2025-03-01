@@ -1,11 +1,3 @@
-name: Trigger GitLab Pipeline
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:  # Permet de déclencher le workflow via l'API
-
 jobs:
   trigger_gitlab_pipeline:
     runs-on: ubuntu-latest
@@ -16,14 +8,19 @@ jobs:
           echo "GITLAB_TOKEN=${{ secrets.GITLAB_TOKEN }}" >> $GITHUB_ENV
           echo "GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }}" >> $GITHUB_ENV
 
+      - name: Install jq
+        run: sudo apt-get install jq
+
       - name: Trigger GitLab Pipeline
         run: |
-          # Déclenche le pipeline GitLab
           RESPONSE=$(curl --silent --request POST \
-            --form "ref=main" \
-            --form "token=${{ secrets.GITLAB_TOKEN }}" \
-            "https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_PROJECT_ID }}/trigger/pipeline")
-          
+            --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+            --data "ref=main" \
+            "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipeline")
+
+          # Affiche la réponse de l'API pour vérifier si le pipeline est bien déclenché
+          echo "Réponse de l'API GitLab: $RESPONSE"
+
           # Récupère l'ID du pipeline
           PIPELINE_ID=$(echo "$RESPONSE" | jq -r '.id')
 
@@ -37,10 +34,9 @@ jobs:
 
       - name: Monitor GitLab Pipeline Status
         run: |
-          STATUS="running"
-          while [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; do
+          STATUS="created"
+          while [[ "$STATUS" == "created" || "$STATUS" == "pending" || "$STATUS" == "running" ]]; do
             sleep 10
-            # Vérifie le statut du pipeline
             RESPONSE=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
               "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipelines/$PIPELINE_ID")
             STATUS=$(echo "$RESPONSE" | jq -r '.status')
