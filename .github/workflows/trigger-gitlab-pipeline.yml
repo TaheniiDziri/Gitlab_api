@@ -1,81 +1,77 @@
 name: Trigger GitLab Pipeline
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  on:
+    push:
+      branches:
+        - main
+    workflow_dispatch:
 
-jobs:
-  trigger_gitlab_pipeline:
-    runs-on: ubuntu-latest
+  jobs:
+    trigger_gitlab_pipeline:
+      runs-on: ubuntu-latest
 
-    steps:
-      - name: Set up GitHub repository and GitLab API token
-        run: |
-          echo "GITLAB_TOKEN=${{ secrets.GITLAB_TOKEN }}" >> $GITHUB_ENV
-          echo "GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }}" >> $GITHUB_ENV
-
-      - name: Install jq
-        run: sudo apt-get install jq
-
-      - name: Trigger GitLab Pipeline
-        run: |
-          RESPONSE=$(curl --silent --request POST \
-            --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-            --data "ref=main" \
-            "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipeline")
-
-          # Affiche la réponse de l'API pour vérifier si le pipeline est bien déclenché
-          echo "Réponse de l'API GitLab: $RESPONSE"
-
-          # Récupère l'ID du pipeline
-          PIPELINE_ID=$(echo "$RESPONSE" | jq -r '.id')
-
-          if [ "$PIPELINE_ID" == "null" ]; then
-            echo "Échec du déclenchement du pipeline GitLab"
-            exit 1
-          fi
-
-          echo "Pipeline GitLab déclenché avec succès ! ID: $PIPELINE_ID"
-          echo "PIPELINE_ID=$PIPELINE_ID" >> $GITHUB_ENV
-
-      - name: Monitor GitLab Pipeline Status and Display All Information
-        run: |
-          STATUS="created"
-          while [[ "$STATUS" == "created" || "$STATUS" == "pending" || "$STATUS" == "running" ]]; do
-            sleep 10
-            RESPONSE=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-              "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipelines/$PIPELINE_ID")
-            STATUS=$(echo "$RESPONSE" | jq -r '.status')
+      steps:
+        - name: Set up GitHub repository and GitLab API token
+          run: |
+            echo "GITLAB_TOKEN=${{ secrets.GITLAB_TOKEN }}" >> $GITHUB_ENV
+            echo "GITLAB_PROJECT_ID=${{ secrets.GITLAB_PROJECT_ID }}" >> $GITHUB_ENV
             
-            # Affichage des détails du pipeline
-            echo "Statut actuel du pipeline: $STATUS"
-            echo "ID du pipeline: $(echo "$RESPONSE" | jq -r '.id')"
-            echo "Référence du pipeline: $(echo "$RESPONSE" | jq -r '.ref')"
-            echo "SHA du commit: $(echo "$RESPONSE" | jq -r '.sha')"
-            echo "Statut du pipeline: $STATUS"
-            echo "URL Web du pipeline: $(echo "$RESPONSE" | jq -r '.web_url')"
-            echo "Créé à: $(echo "$RESPONSE" | jq -r '.created_at')"
-            echo "Mis à jour à: $(echo "$RESPONSE" | jq -r '.updated_at')"
-            echo "Utilisateur: $(echo "$RESPONSE" | jq -r '.user.name')"
-            echo "Nom d'utilisateur: $(echo "$RESPONSE" | jq -r '.user.username')"
-            echo "Propriétaire du pipeline: $(echo "$RESPONSE" | jq -r '.project.name')"
-            echo "Projet: $(echo "$RESPONSE" | jq -r '.project.path_with_namespace')"
-            echo "Avant SHA: $(echo "$RESPONSE" | jq -r '.before_sha')"
-            echo "Tag: $(echo "$RESPONSE" | jq -r '.tag')"
+        - name: Install jq
+          run: sudo apt-get install jq
 
-            # Affiche les jobs du pipeline
-            JOBS=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_TOKEN" \
-              "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipelines/$PIPELINE_ID/jobs")
-            echo "Liste des jobs dans le pipeline:"
-            echo "$JOBS" | jq -r '.[] | "\(.name) - \(.status)"'
+        - name: Trigger GitLab Pipeline
+          run: |
+            RESPONSE=$(curl --silent --request POST               --header "PRIVATE-TOKEN: $GITLAB_TOKEN"               --data "ref=main"               "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipeline")
 
-          done
+            # Affiche la réponse de l'API pour vérifier si le pipeline est bien déclenché
+            echo "Réponse de l'API GitLab: $RESPONSE"
 
-          if [ "$STATUS" == "success" ]; then
-            echo "Le pipeline GitLab a réussi"
-          else
-            echo "Le pipeline GitLab a échoué"
-            exit 1
-          fi
+            # Récupère l'ID du pipeline
+            PIPELINE_ID=$(echo "$RESPONSE" | jq -r '.id')
+
+            if [ "$PIPELINE_ID" == "null" ]; then
+              echo "Échec du déclenchement du pipeline GitLab"
+              exit 1
+            fi
+
+            echo "Pipeline GitLab déclenché avec succès ! ID: $PIPELINE_ID"
+            echo "PIPELINE_ID=$PIPELINE_ID" >> $GITHUB_ENV
+
+        - name: Monitor GitLab Pipeline Status and Display All Information
+          run: |
+            STATUS="created"
+            while [[ "$STATUS" == "created" || "$STATUS" == "pending" || "$STATUS" == "running" ]]; do
+              sleep 10
+              RESPONSE=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_TOKEN"                 "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipelines/$PIPELINE_ID")
+              STATUS=$(echo "$RESPONSE" | jq -r '.status')
+
+              # Affichage des détails du pipeline
+              echo "Statut actuel du pipeline: $STATUS"
+              echo "ID du pipeline: $(echo "$RESPONSE" | jq -r '.id')"
+              echo "Référence du pipeline: $(echo "$RESPONSE" | jq -r '.ref')"
+              echo "SHA du commit: $(echo "$RESPONSE" | jq -r '.sha')"
+              echo "Statut du pipeline: $STATUS"
+              echo "URL Web du pipeline: $(echo "$RESPONSE" | jq -r '.web_url')"
+              echo "Créé à: $(echo "$RESPONSE" | jq -r '.created_at')"
+              echo "Mis à jour à: $(echo "$RESPONSE" | jq -r '.updated_at')"
+              echo "Utilisateur: $(echo "$RESPONSE" | jq -r '.user.name')"
+              echo "Nom d'utilisateur: $(echo "$RESPONSE" | jq -r '.user.username')"
+              echo "Propriétaire du pipeline: $(echo "$RESPONSE" | jq -r '.project.name')"
+              echo "Projet: $(echo "$RESPONSE" | jq -r '.project.path_with_namespace')"
+              echo "Avant SHA: $(echo "$RESPONSE" | jq -r '.before_sha')"
+              echo "Tag: $(echo "$RESPONSE" | jq -r '.tag')"
+
+              # Affiche les jobs du pipeline
+              JOBS=$(curl --silent --header "PRIVATE-TOKEN: $GITLAB_TOKEN"                 "https://gitlab.com/api/v4/projects/$GITLAB_PROJECT_ID/pipelines/$PIPELINE_ID/jobs")
+              echo "Liste des jobs dans le pipeline:"
+              echo "$JOBS" | jq -r '.[] | "(.name) - (.status)"'
+
+            done
+
+            if [ "$STATUS" == "success" ]; then
+              echo "Le pipeline GitLab a réussi"
+            else
+              echo "Le pipeline GitLab a échoué"
+              exit 1
+            fi
+  
